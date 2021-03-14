@@ -1,0 +1,59 @@
+version: 2
+jobs:
+  build:    
+    docker:
+      - image: cirrusci/flutter
+
+    branches:
+      only: master
+
+    steps:
+      - checkout
+
+      - run:
+          name: Run Flutter doctor
+          command: flutter doctor
+
+      - run:
+          name: Run the application tests
+          command: flutter test
+
+      - run:
+          name: Build the Android version
+          command: flutter build apk 
+
+      - store_artifacts:
+          path: build/app/outputs/apk/release/app-release.apk
+
+	- run:
+          name: Sending notification
+          when: on_success
+          command: |
+            if [[ true ]];  then
+              curl -X POST -H "X-ChatWorkToken: $CHATWORK_TOKEN" -d \
+                "body=
+                Your have a success build !
+                - Repository name: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+                - Author: $CIRCLE_USERNAME
+                - Branch: $CIRCLE_BRANCH
+                - Commit/pull request link: https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commit/$CIRCLE_SHA1
+                - Build link: https://circleci.com/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM
+                " \
+                "https://api.chatwork.com/v2/rooms/$CHATWORK_ROOM/messages"
+            fi
+      - run:
+          name: Sending notification
+          when: on_fail
+          command: |
+            if [[ true ]];  then
+              curl -X POST -H "X-ChatWorkToken: $CHATWORK_TOKEN" -d \
+                "body=
+                Your have a fail build !
+                - Repository name: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+                - Author: $CIRCLE_USERNAME
+                - Branch: $CIRCLE_BRANCH
+                - Commit/pull request link: https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commit/$CIRCLE_SHA1
+                - Build link: https://circleci.com/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM
+                " \
+                "https://api.chatwork.com/v2/rooms/$CHATWORK_ROOM/messages"
+            fi
